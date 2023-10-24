@@ -1,0 +1,11 @@
+{
+  "name": "RomanRoacks",
+  "displayName": "RomanRoacks",
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "ccdf9f03-404f-4302-98cc-32eb1fd99c00"
+      }
+    }
+  }
+}
