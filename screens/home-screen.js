@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,14 +11,26 @@ import {
 import PushNotification from 'react-native-push-notification';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-
 const HomeScreen = ({ navigation }) => {
   const [cardNumber, setCardNumber] = useState("");
   const [holderName, setHolderName] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
   const [cardBillDate, setCardBillDate] = useState("");
   const [inputDay, setInputDay] = useState('');
+  const [notificationScheduled, setNotificationScheduled] = useState(false);
 
+  useEffect(() => {
+    // Cancel all existing notifications when the component mounts
+    PushNotification.cancelAllLocalNotifications();
+
+    // Set notificationScheduled to false when the component mounts
+    setNotificationScheduled(false);
+
+    return () => {
+      // Cleanup logic when the component unmounts
+      PushNotification.cancelAllLocalNotifications();
+    };
+  }, []); // Empty dependency array ensures this effect runs only on mount and unmount
 
   const handleAddCard = async () => {
     const newCard = {
@@ -52,6 +64,7 @@ const HomeScreen = ({ navigation }) => {
     setExpirationDate("");
     setCardBillDate("");
 
+    // Schedule notifications when a new card is added
     scheduleNotifications(inputDay);
 
     navigation.navigate("MainScreen", { displayedData: storedData });
@@ -71,43 +84,41 @@ const HomeScreen = ({ navigation }) => {
       if (targetDate < now) {
         targetDate.setMonth(targetDate.getMonth() + 1);
       }
-    console.log('Updated Target Date:', targetDate);
 
-    if (targetDate instanceof Date && targetDate) {
-      for (let i = 0; i < 5; i++) {
-        const timeUntilNotification = targetDate - now;
-        const secondsUntilNotification = Math.floor(timeUntilNotification / 1000);
+      console.log('Updated Target Date:', targetDate);
 
-        console.log(`Scheduled notification for the ${day} day of next month at ${targetDate}`);
+      if (targetDate instanceof Date && targetDate) {
+        for (let i = 0; i < 5; i++) {
+          const timeUntilNotification = targetDate - now;
+          const secondsUntilNotification = Math.floor(timeUntilNotification / 1000);
 
-        await PushNotification.localNotificationSchedule({
-          message: `Reminder for the ${day} day of every month `,
-          date: new Date(Date.now() + secondsUntilNotification * 1000),
-          trigger: { seconds: secondsUntilNotification },
-        });
+          console.log(`Scheduled notification for the ${day} day of next month at ${targetDate}`);
 
-        // Schedule for the next month
-        targetDate.setMonth(targetDate.getMonth() + 1);
+          await PushNotification.localNotificationSchedule({
+            message: `Reminder for the ${day} day of every month `,
+            date: new Date(Date.now() + secondsUntilNotification * 1000),
+            trigger: { seconds: secondsUntilNotification },
+          });
+
+          // Schedule for the next month
+          targetDate.setMonth(targetDate.getMonth() + 1);
+        }
+
+        setNotificationScheduled(true);
+      } else {
+        Alert.alert('Invalid targetDate');
       }
-
-      setNotificationScheduled(true);
     } else {
-      Alert.alert('Invalid targetDate');
-    }
-  } else {
       Alert.alert('Please enter a valid day between 1 and 31.');
     }
   }
-// console.log("targetdate",PushNotificatione)
-  const Duedate = ({ scheduleNotifications }) => {
-    const [notificationScheduled, setNotificationScheduled] = useState(false);
 
+  const Duedate = () => {
     return (
       <View>
         <View style={styles.inputContainer}>
-          
           <TextInput
-           style={styles.input}
+            style={styles.input}
             placeholder="Enter a day (1-31)"
             placeholderTextColor={styles.placeholder.color}
             keyboardType="numeric"
@@ -195,7 +206,7 @@ const HomeScreen = ({ navigation }) => {
         />
       </View>
 
-      <Duedate scheduleNotifications={scheduleNotifications} />
+      <Duedate />
 
       <TouchableOpacity
         style={[styles.button, styles.successButton]}
